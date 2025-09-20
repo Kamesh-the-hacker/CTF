@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Login - VHP CTF</title>
+  <style>
+    body {
+      background: #000;
+      color: #0f0;
+      font-family: monospace;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+    .login-box {
+      border: 1px solid #0f0;
+      padding: 2rem;
+      width: 300px;
+      border-radius: 8px;
+      box-shadow: 0 0 10px #0f0;
+    }
+    h1 {
+      text-align: center;
+      color: #0ff;
+      margin-bottom: 1rem;
+    }
+    input {
+      width: 100%;
+      padding: 0.5rem;
+      margin-bottom: 1rem;
+      background: #001100;
+      color: #0f0;
+      border: 1px solid #0f0;
+      border-radius: 4px;
+    }
+    button {
+      width: 100%;
+      padding: 0.5rem;
+      background: #020;
+      color: #0f0;
+      border: 1px solid #0f0;
+      cursor: pointer;
+      font-weight: bold;
+      border-radius: 4px;
+    }
+    button:hover {
+      background: #030;
+    }
+    .message {
+      margin-top: 1rem;
+      text-align: center;
+    }
+    .message.error { color: red; }
+    .message.success { color: #0ff; }
+  </style>
+</head>
+<body>
+  <div class="login-box">
+    <h1>Admin Login</h1>
+    <form id="login-form">
+      <input type="text" id="username" placeholder="Username" required>
+      <input type="password" id="password" placeholder="Password" required>
+      <button type="submit">Login</button>
+    </form>
+    <div id="login-message" class="message"></div>
+  </div>
+
+  <script>
+    document.getElementById('login-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value;
+
+      const messageEl = document.getElementById('login-message');
+
+      if (!username || !password) {
+        messageEl.innerHTML = '<div class="message error">Enter both username and password</div>';
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/admin/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password })
+        });
+
+        const data = await res.json();
+
+        if (data.success) {
+          sessionStorage.setItem('adminLoggedIn', true); // session only
+          messageEl.innerHTML = '<div class="message success">Login successful!</div>';
+          setTimeout(() => {
+            window.location.href = 'admin.html'; // redirect to your admin dashboard
+          }, 1000);
+        } else {
+          messageEl.innerHTML = `<div class="message error">${data.message || 'Login failed'}</div>`;
+        }
+      } catch (err) {
+        messageEl.innerHTML = '<div class="message error">Server error</div>';
+        console.error(err);
+      }
+    });
+  </script>
+</body>
+</html>
