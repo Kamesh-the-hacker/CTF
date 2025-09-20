@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VHP CTF Leaderboard</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Source+Code+Pro:wght@400;600&display=swap');
+
+body {
+    background: #0a0a0a;
+    font-family: 'Source Code Pro', monospace;
+    color: #00ff00;
+    min-height: 100vh;
+    margin: 0;
+    padding: 2rem;
+}
+
+body::before {
+    content: '';
+    position: fixed;
+    top:0; left:0;
+    width:100%; height:100%;
+    background:
+        radial-gradient(circle at 20% 50%, rgba(0, 255, 255, 0.1) 0%, transparent 50%),
+        radial-gradient(circle at 80% 20%, rgba(0, 255, 0, 0.1) 0%, transparent 50%),
+        radial-gradient(circle at 40% 80%, rgba(0, 128, 255, 0.1) 0%, transparent 50%);
+    animation: backgroundPulse 8s ease-in-out infinite alternate;
+    z-index:-1;
+}
+
+@keyframes backgroundPulse {
+    0% { opacity:0.3; }
+    100% { opacity:0.7; }
+}
+
+h2 {
+    text-align:center;
+    color: #00ffff;
+    font-family:'Orbitron', monospace;
+    text-shadow:0 0 10px #00ffff;
+    margin-bottom:2rem;
+}
+
+.table-container {
+    max-width:800px;
+    margin:0 auto;
+    overflow-x:auto;
+}
+
+table {
+    width:100%;
+    border-collapse: collapse;
+    background: rgba(0,0,0,0.8);
+    border: 1px solid #00ff00;
+    border-radius:10px;
+    overflow:hidden;
+    box-shadow:0 0 20px rgba(0,255,0,0.3);
+}
+
+th, td {
+    padding:1rem;
+    text-align:left;
+    border-bottom: 1px solid #003300;
+}
+
+th {
+    background: rgba(0, 255, 0, 0.1);
+    color: #00ffff;
+    text-shadow:0 0 5px #00ffff;
+}
+
+tr:hover {
+    background: rgba(0, 255, 0, 0.05);
+}
+
+.btn {
+    display: inline-block;
+    padding:0.7rem 1.5rem;
+    margin:1rem 0;
+    border:2px solid #00ff00;
+    border-radius:8px;
+    background: linear-gradient(45deg, #001100, #003300);
+    color:#00ff00;
+    font-family:'Source Code Pro', monospace;
+    cursor:pointer;
+    text-decoration:none;
+    transition: all 0.3s ease;
+}
+
+.btn:hover {
+    background: linear-gradient(45deg, #002200, #004400);
+    box-shadow:0 0 20px rgba(0,255,0,0.6);
+    color:#00ffff;
+    transform: translateY(-2px);
+}
+</style>
+</head>
+<body>
+<h2>VHP CTF Leaderboard</h2>
+
+<div class="table-container">
+    <table id="leaderboard-table">
+        <thead>
+            <tr>
+                <th>Rank</th>
+                <th>Username</th>
+                <th>Score</th>
+                <th>Challenges Solved</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Filled by JavaScript -->
+        </tbody>
+    </table>
+</div>
+
+<a href="dashboard.html" class="btn">Back to Dashboard</a>
+
+<script>
+const tbody = document.querySelector('#leaderboard-table tbody');
+
+async function loadLeaderboard() {
+    try {
+        const response = await fetch('http://localhost:3000/api/leaderboard');
+        const data = await response.json();
+
+        if (data && data.length > 0) {
+            tbody.innerHTML = "";
+            data.forEach((user, index) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${index + 1}</td>
+                    <td>${user.username}</td>
+                    <td>${user.score}</td>
+                    <td>${user.solves || 0}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        } else {
+            tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;">No users found</td></tr>`;
+        }
+    } catch (err) {
+        console.error("Failed to load leaderboard:", err);
+        tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;">Server error. Try again later.</td></tr>`;
+    }
+}
+
+loadLeaderboard();
+</script>
+</body>
+</html>
