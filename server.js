@@ -31,7 +31,7 @@ app.use(session({
 const upload = multer({ dest: path.join(__dirname, "uploads") });
 
 // ================== DATABASE ==================
-const dbFile = path.join(__dirname, "ctf.db");
+const dbFile = path.join('/tmp', "ctf.db");
 const dbExists = fs.existsSync(dbFile);
 const db = new sqlite3.Database(dbFile);
 
@@ -249,3 +249,4 @@ app.get("/api/leaderboard", (req, res) => {
 app.listen(PORT, () => {
   console.log(`🚀 Server running at http://localhost:${PORT}`);
 });
+
