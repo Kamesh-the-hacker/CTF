@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VHP CTF Admin Panel</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Source+Code+Pro:wght@400;600&display=swap');
+
+body {
+    background: #0a0a0a;
+    font-family: 'Source Code Pro', monospace;
+    color: #00ff00;
+    min-height: 100vh;
+    padding: 2rem;
+}
+body::before {
+    content: '';
+    position: fixed;
+    top:0; left:0;
+    width:100%; height:100%;
+    background:
+        radial-gradient(circle at 20% 50%, rgba(0, 255, 255, 0.1) 0%, transparent 50%),
+        radial-gradient(circle at 80% 20%, rgba(0, 255, 0, 0.1) 0%, transparent 50%),
+        radial-gradient(circle at 40% 80%, rgba(0, 128, 255, 0.1) 0%, transparent 50%);
+    animation: backgroundPulse 8s ease-in-out infinite alternate;
+    z-index:-1;
+}
+@keyframes backgroundPulse {
+    0% { opacity:0.3; }
+    100% { opacity:0.7; }
+}
+h1 { text-align: center; color: #00ffff; font-family: 'Orbitron', monospace; text-shadow: 0 0 10px #00ffff; margin-bottom: 1rem; }
+.navbar { text-align: center; margin-bottom: 2rem; }
+.navbar button { background: linear-gradient(45deg, #001100, #003300); border:2px solid #00ff00; color:#00ff00; font-family:'Source Code Pro', monospace; padding:0.6rem 1rem; margin:0 0.5rem; border-radius:6px; cursor:pointer; transition: all 0.3s ease; }
+.navbar button:hover { background: linear-gradient(45deg, #002200, #004400); color:#00ffff; box-shadow:0 0 15px rgba(0,255,0,0.6); }
+
+.form-container { display: none; background: rgba(0,0,0,0.85); border:1px solid #00ff00; border-radius: 10px; padding: 1.5rem; margin-bottom: 2rem; box-shadow:0 0 20px rgba(0,255,0,0.5); }
+label { display:block; margin-bottom:0.5rem; color:#00ff00; }
+input[type="text"], input[type="number"], input[type="password"], select, textarea, input[type="file"] { width:100%; padding:0.8rem; border-radius:5px; border:1px solid #00ff00; background:#001100; color:#00ff00; font-family:'Source Code Pro', monospace; margin-bottom: 1rem; }
+input:focus, select:focus, textarea:focus { outline:none; border-color:#00ffff; box-shadow:0 0 10px rgba(0,255,255,0.3); }
+
+.btn { padding:0.8rem 1.5rem; background: linear-gradient(45deg, #001100, #003300); color:#00ff00; border:2px solid #00ff00; border-radius:8px; cursor:pointer; font-size:1rem; font-family:'Source Code Pro', monospace; transition: all 0.3s ease; }
+.btn:hover { background: linear-gradient(45deg, #002200, #004400); box-shadow: 0 0 20px rgba(0,255,0,0.6); color:#00ffff; transform: translateY(-2px); }
+
+.message { text-align:center; padding:0.8rem; margin-bottom:1rem; border-radius:5px; }
+.message.error { background: rgba(255,0,64,0.1); border:1px solid #ff0040; color:#ff0040; }
+.message.success { background: rgba(0,255,0,0.1); border:1px solid #00ff00; color:#00ff00; }
+
+.section-title { margin-bottom: 1rem; color: #00ffff; text-shadow:0 0 5px #00ffff; }
+.user-list, .challenge-list { margin-top:1rem; }
+.user-item, .challenge-item { background: rgba(0,0,0,0.7); padding:1rem; margin-bottom:1rem; border:1px solid #00ff00; border-radius:8px; }
+.user-item button, .challenge-item button { margin-left: 0.5rem; }
+.edit-input { display:block; margin-bottom:0.5rem; width:100%; padding:0.5rem; border-radius:5px; border:1px solid #00ff00; background:#001100; color:#00ff00; font-family:'Source Code Pro', monospace; }
+</style>
+</head>
+<body>
+
+<h1>VHP CTF Admin Panel</h1>
+
+<div class="navbar">
+    <button onclick="showSection('add')">Add Challenge</button>
+    <button onclick="showSection('manage')">Manage Challenges</button>
+    <button onclick="showSection('users')">Manage Users</button>
+    <button onclick="showSection('password')">Change Password</button>
+</div>
+
+<!-- Add Challenge -->
+<div class="form-container" id="add">
+    <h2 class="section-title">Add New Challenge</h2>
+    <div id="message"></div>
+    <form id="add-challenge-form">
+        <label>Title:</label><input type="text" id="title" required>
+        <label>Category:</label>
+        <select id="category" required>
+            <option value="">Select Category</option>
+            <option value="web">Web Exploitation</option>
+            <option value="crypto">Cryptography</option>
+            <option value="binary">Binary Exploitation</option>
+            <option value="forensics">Forensics</option>
+            <option value="misc">Miscellaneous</option>
+        </select>
+        <label>Description:</label><textarea id="description" rows="4" required></textarea>
+        <label>Flag:</label><input type="text" id="flag" placeholder="flag{example_flag}" required>
+        <label>Points:</label><input type="number" id="points" min="1" max="1000" required>
+        <label>Upload File (optional):</label><input type="file" id="file">
+        <label>Or Link (optional):</label><input type="text" id="link" placeholder="https://example.com/challenge">
+        <button type="submit" class="btn">Add Challenge</button>
+    </form>
+</div>
+
+<!-- Manage Challenges -->
+<div class="form-container" id="manage">
+    <h2 class="section-title">Manage Challenges</h2>
+    <div id="challenge-container" class="challenge-list"></div>
+</div>
+
+<!-- Manage Users -->
+<div class="form-container" id="users">
+    <h2 class="section-title">Manage Users</h2>
+    <div id="users-container" class="user-list"></div>
+</div>
+
+<!-- Change Password -->
+<div class="form-container" id="password">
+    <h2 class="section-title">Change Admin Password</h2>
+    <form id="change-password-form">
+        <label>Old Password:</label><input type="password" id="old-password" required>
+        <label>New Password:</label><input type="password" id="new-password" required>
+        <label>Confirm New Password:</label><input type="password" id="confirm-password" required>
+        <button type="submit" class="btn">Change Password</button>
+    </form>
+    <div id="password-message"></div>
+</div>
+
+<script>
+let challenges = [];
+let users = [
+    {id:1, username:"user1"},
+    {id:2, username:"user2"}
+];
+
+function showSection(id){
+    document.querySelectorAll('.form-container').forEach(div => div.style.display='none');
+    document.getElementById(id).style.display='block';
+}
+
+// Default section
+showSection('add');
+
+// Add Challenge
+const addForm = document.getElementById('add-challenge-form');
+const messageDiv = document.getElementById('message');
+addForm.addEventListener('submit', e => {
+    e.preventDefault();
+    const newChallenge = {
+        id: challenges.length + 1,
+        title: document.getElementById('title').value.trim(),
+        category: document.getElementById('category').value,
+        description: document.getElementById('description').value.trim(),
+        flag: document.getElementById('flag').value.trim(),
+        points: document.getElementById('points').value,
+        file: document.getElementById('file').files[0] ? document.getElementById('file').files[0].name : null,
+        link: document.getElementById('link').value.trim() || null
+    };
+    challenges.push(newChallenge);
+    messageDiv.innerHTML = '<div class="message success">Challenge added successfully!</div>';
+    addForm.reset();
+    renderChallenges();
+});
+
+// Render Challenges
+function renderChallenges(){
+    showSection('manage');
+    const container = document.getElementById('challenge-container');
+    container.innerHTML = '';
+    if(challenges.length === 0){ container.innerHTML = '<p>No challenges yet.</p>'; return; }
+    challenges.forEach(ch => {
+        const div = document.createElement('div');
+        div.className = 'challenge-item';
+        div.innerHTML = `
+            <input type="text" class="edit-input" value="${ch.title}" id="title-${ch.id}">
+            <input type="text" class="edit-input" value="${ch.category}" id="category-${ch.id}">
+            <input type="text" class="edit-input" value="${ch.description}" id="desc-${ch.id}">
+            <input type="text" class="edit-input" value="${ch.flag}" id="flag-${ch.id}">
+            <input type="number" class="edit-input" value="${ch.points}" id="points-${ch.id}">
+            ${ch.file ? `<span>[File: ${ch.file}]</span>` : ''}
+            ${ch.link ? `<span>[Link]</span>` : ''}
+            <button type="button" data-action="save" data-id="${ch.id}" class="btn">Save</button>
+            <button type="button" data-action="delete" data-id="${ch.id}" class="btn">Delete</button>
+        `;
+        container.appendChild(div);
+    });
+}
+
+// Event delegation for Save/Delete
+document.getElementById('challenge-container').addEventListener('click', e => {
+    const action = e.target.getAttribute('data-action');
+    const id = parseInt(e.target.getAttribute('data-id'));
+    if(!action || !id) return;
+
+    if(action === 'save'){
+        const ch = challenges.find(c => c.id === id);
+        ch.title = document.getElementById(`title-${id}`).value.trim();
+        ch.category = document.getElementById(`category-${id}`).value.trim();
+        ch.description = document.getElementById(`desc-${id}`).value.trim();
+        ch.flag = document.getElementById(`flag-${id}`).value.trim();
+        ch.points = document.getElementById(`points-${id}`).value.trim();
+        renderChallenges();
+    } else if(action === 'delete'){
+        challenges = challenges.filter(c => c.id !== id);
+        renderChallenges();
+    }
+});
+
+// Render Users
+function renderUsers(){
+    const container = document.getElementById('users-container');
+    container.innerHTML = '';
+    if(users.length === 0){ container.innerHTML = '<p>No users yet.</p>'; return; }
+    users.forEach(u => {
+        const div = document.createElement('div');
+        div.className = 'user-item';
+        div.innerHTML = `${u.username} <button type="button" onclick="deleteUser(${u.id})" class="btn">Delete</button>`;
+        container.appendChild(div);
+    });
+}
+function deleteUser(id){
+    users = users.filter(u => u.id !== id);
+    renderUsers();
+}
+renderUsers();
+
+// Change Password
+const passwordForm = document.getElementById('change-password-form');
+const passwordMessage = document.getElementById('password-message');
+passwordForm.addEventListener('submit', e => {
+    e.preventDefault();
+    const oldPass = document.getElementById('old-password').value.trim();
+    const newPass = document.getElementById('new-password').value.trim();
+    const confirmPass = document.getElementById('confirm-password').value.trim();
+
+    if(!oldPass || !newPass || !confirmPass){
+        passwordMessage.innerHTML = '<div class="message error">All fields are required</div>';
+        return;
+    }
+    if(newPass !== confirmPass){
+        passwordMessage.innerHTML = '<div class="message error">Passwords do not match</div>';
+        return;
+    }
+    passwordMessage.innerHTML = '<div class="message success">Password changed successfully!</div>';
+    passwordForm.reset();
+});
+</script>
+</body>
+</html>

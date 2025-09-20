@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VHP CTF Platform</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Source+Code+Pro:wght@400;600&display=swap');
+
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+    background:#0a0a0a;
+    color:#00ff00;
+    font-family:'Source Code Pro', monospace;
+    min-height:100vh;
+}
+header { background:rgba(0,0,0,0.9); border-bottom:2px solid #00ff00; position:sticky; top:0; z-index:1000; }
+nav { display:flex; justify-content:space-between; align-items:center; padding:1rem 2rem; max-width:1200px; margin:0 auto; }
+.logo { font-family:'Orbitron', monospace; font-size:1.5rem; font-weight:900; color:#00ffff; text-shadow:0 0 10px #00ffff; }
+.nav-links { display:flex; list-style:none; gap:2rem; }
+.nav-links a { color:#00ff00; text-decoration:none; padding:0.5rem 1rem; border:1px solid transparent; border-radius:5px; transition:all 0.3s ease; position:relative; }
+.nav-links a:hover { color:#00ffff; border-color:#00ffff; box-shadow:0 0 15px rgba(0,255,255,0.5); text-shadow:0 0 10px #00ffff; }
+.btn { background:linear-gradient(45deg,#001100,#003300); color:#00ff00; border:2px solid #00ff00; padding:0.7rem 1.5rem; border-radius:8px; cursor:pointer; font-family:'Source Code Pro', monospace; font-size:1rem; transition:all 0.3s ease; text-decoration:none; display:inline-block; margin:0.5rem; }
+.btn:hover { background:linear-gradient(45deg,#002200,#004400); box-shadow:0 0 20px rgba(0,255,0,0.6); transform:translateY(-2px); color:#00ffff; border-color:#00ffff; }
+.form-container { max-width:500px; margin:2rem auto; padding:2rem; background:rgba(0,0,0,0.7); border:1px solid #00ff00; border-radius:10px; box-shadow:0 0 30px rgba(0,255,0,0.2); }
+.form-group { margin-bottom:1.5rem; }
+label { display:block; margin-bottom:0.5rem; color:#00ffff; font-weight:600; }
+input[type=text], input[type=password], input[type=number], select, textarea { width:100%; padding:0.8rem; background:#001100; border:1px solid #00ff00; border-radius:5px; color:#00ff00; font-family:'Source Code Pro', monospace; font-size:1rem; }
+input:focus, select:focus, textarea:focus { outline:none; border-color:#00ffff; box-shadow:0 0 10px rgba(0,255,255,0.3); }
+.page { display:none; }
+.page.active { display:block; }
+.loading { display:inline-block; width:20px; height:20px; border:2px solid #00ff00; border-radius:50%; border-top-color:transparent; animation:spin 1s ease-in-out infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.hero { text-align:center; padding:4rem 2rem; background:radial-gradient(circle at center, rgba(0,255,255,0.1) 0%, transparent 70%); }
+.hero h1 { font-family:'Orbitron', monospace; font-size:3rem; color:#00ffff; text-shadow:0 0 20px #00ffff; margin-bottom:1rem; animation:glow 2s ease-in-out infinite alternate; }
+@keyframes glow { from { text-shadow:0 0 20px #00ffff; } to { text-shadow:0 0 30px #00ffff,0 0 40px #00ffff; } }
+.hero p { font-size:1.2rem; margin-bottom:2rem; opacity:0.8; }
+.admin-badge { background:linear-gradient(45deg,#ff0040,#ff4080); color:white; padding:0.2rem 0.5rem; border-radius:15px; font-size:0.8rem; margin-left:0.5rem; box-shadow:0 0 10px rgba(255,0,64,0.5); }
+.message { padding:1rem; margin:1rem 0; border-radius:5px; text-align:center; font-weight:600; }
+.message.success { background:rgba(0,255,0,0.1); border:1px solid #00ff00; color:#00ff00; box-shadow:0 0 10px rgba(0,255,0,0.3); }
+.message.error { background:rgba(255,0,64,0.1); border:1px solid #ff0040; color:#ff0040; box-shadow:0 0 10px rgba(255,0,64,0.3); }
+.container { max-width:1200px; margin:0 auto; padding:2rem; }
+.table-container { overflow-x:auto; margin:2rem 0; }
+table { width:100%; border-collapse:collapse; background:rgba(0,0,0,0.7); border-radius:10px; overflow:hidden; box-shadow:0 0 20px rgba(0,255,0,0.2); }
+th, td { padding:1rem; text-align:left; border-bottom:1px solid #003300; }
+th { background:rgba(0,255,0,0.1); color:#00ffff; font-weight:700; text-shadow:0 0 5px #00ffff; }
+tr:hover { background:rgba(0,255,0,0.05); }
+.card { background:rgba(0,0,0,0.8); border:1px solid #00ff00; border-radius:10px; padding:1.5rem; margin:1rem 0; box-shadow:0 0 20px rgba(0,255,0,0.1); transition:all 0.3s ease; }
+.card:hover { border-color:#00ffff; box-shadow:0 0 30px rgba(0,255,255,0.2); transform:translateY(-2px); }
+.card h3 { color:#00ffff; margin-bottom:0.5rem; text-shadow:0 0 5px #00ffff; }
+</style>
+</head>
+<body>
+
+<header>
+<nav>
+<div class="logo">VHP</div>
+<ul class="nav-links">
+<li><a href="index.html" onclick="showPage('home')">Home</a></li>
+<li><a href="login.html" onclick="showPage('dashboard')">Dashboard</a></li>
+<li><a href="leaderboard.html" onclick="showPage('leaderboard')">Leaderboard</a></li>
+<li id="admin-link" style="display:none;"><a href="#" onclick="showPage('admin')">Admin</a></li>
+<li id="login-link"><a href="login.html" onclick="showPage('login')">Login</a></li>
+<li id="register-link"><a href="register.html" onclick="showPage('register')">Register</a></li>
+<li id="logout-link" style="display:none;"><a href="#" onclick="logout()">Logout</a></li>
+</ul>
+</nav>
+</header>
+
+<div id="message-container"></div>
+
+<!-- Home Page with Terminal -->
+<div id="home" class="page active">
+<div class="hero">
+<h1>Welcome to VHP CTF</h1>
+<p>Test your hacking skills in our cybersecurity challenges</p>
+</div>
+<div class="container">
+<div id="terminal" style="background:#001100; border:2px solid #00ff00; padding:1rem; border-radius:10px; min-height:400px; overflow-y:auto; font-family:'Source Code Pro', monospace; color:#00ff00;">
+<div class="line">Welcome to VHP Hacker Terminal! Type 'help' for guidance.</div>
+</div>
+<div style="position:relative; margin-top:0.5rem;">
+<span style="color:#00ff00;">&gt;</span>
+<input type="text" id="terminal-input" placeholder="Enter command..." autocomplete="off" style="width:95%; background:none; border:none; color:#00ff00; font-family:'Source Code Pro', monospace; font-size:1rem; outline:none;">
+<span id="cursor" style="color:#00ff00;">█</span>
+</div>
+</div>
+</div>
+
+<!-- Dashboard Page -->
+<div id="dashboard" class="page">
+<div class="container">
+<h2>Challenge Dashboard</h2>
+<div id="challenges-container"></div>
+</div>
+</div>
+
+<!-- Leaderboard Page -->
+<div id="leaderboard" class="page">
+<div class="container">
+<h2>Leaderboard</h2>
+<div class="table-container">
+<table id="leaderboard-table">
+<thead>
+<tr><th>Rank</th><th>Username</th><th>Score</th><th>Challenges Solved</th></tr>
+</thead>
+<tbody></tbody>
+</table>
+</div>
+</div>
+</div>
+
+<!-- Admin Page -->
+<div id="admin" class="page">
+<div class="container">
+<h2>Admin Panel <span class="admin-badge">ADMIN</span></h2>
+<!-- Admin content placeholder -->
+<p>Admin functionalities go here.</p>
+</div>
+</div>
+
+<!-- Login Page -->
+<div id="login" class="page">
+<div class="form-container">
+<h2 style="text-align:center; color:#00ffff; margin-bottom:2rem;">Login</h2>
+<form id="login-form">
+<div class="form-group">
+<label for="login-username">Username:</label>
+<input type="text" id="login-username" name="username" required>
+</div>
+<div class="form-group">
+<label for="login-password">Password:</label>
+<input type="password" id="login-password" name="password" required>
+</div>
+<button type="submit" class="btn" style="width:100%;">Login</button>
+</form>
+<p style="text-align:center; margin-top:1rem;">
+Don't have an account? <a href="#" onclick="showPage('register')" style="color:#00ffff;">Register here</a>
+</p>
+</div>
+</div>
+
+<!-- Register Page -->
+<div id="register" class="page">
+<div class="form-container">
+<h2 style="text-align:center; color:#00ffff; margin-bottom:2rem;">Register</h2>
+<form id="register-form">
+<div class="form-group">
+<label for="register-username">Username:</label>
+<input type="text" id="register-username" name="username" required>
+</div>
+<div class="form-group">
+<label for="register-password">Password:</label>
+<input type="password" id="register-password" name="password" required>
+</div>
+<div class="form-group">
+<label for="confirm-password">Confirm Password:</label>
+<input type="password" id="confirm-password" name="confirmPassword" required>
+</div>
+<button type="submit" class="btn" style="width:100%;">Register</button>
+</form>
+<p style="text-align:center; margin-top:1rem;">
+Already have an account? <a href="#" onclick="showPage('login')" style="color:#00ffff;">Login here</a>
+</p>
+</div>
+</div>
+
+<script>
+// Global state
+let currentUser = null;
+let users = [
+    {id:1, username:'admin', password:'admin123', isAdmin:true, score:500},
+    {id:2, username:'hacker1', password:'password', isAdmin:false, score:350},
+    {id:3, username:'cyber_ninja', password:'password', isAdmin:false, score:280}
+];
+
+// Page navigation
+function showPage(pageId) {
+    document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+    document.getElementById(pageId).classList.add('active');
+}
+
+// Navigation update
+function updateNavigation() {
+    const loginLink=document.getElementById('login-link');
+    const registerLink=document.getElementById('register-link');
+    const logoutLink=document.getElementById('logout-link');
+    const adminLink=document.getElementById('admin-link');
+    if(currentUser){
+        loginLink.style.display='none';
+        registerLink.style.display='none';
+        logoutLink.style.display='block';
+        logoutLink.innerHTML=`<a href="#" onclick="logout()">${currentUser.username}${currentUser.isAdmin?' <span class=admin-badge>ADMIN</span>':''} (Logout)</a>`;
+        adminLink.style.display=currentUser.isAdmin?'block':'none';
+    } else {
+        loginLink.style.display='block';
+        registerLink.style.display='block';
+        logoutLink.style.display='none';
+        adminLink.style.display='none';
+    }
+}
+function login(username,password){
+    const user = users.find(u=>u.username===username && u.password===password);
+    if(user){ currentUser=user; updateNavigation(); showPage('dashboard'); return true; }
+    alert('Invalid username or password'); return false;
+}
+function register(username,password){
+    if(users.some(u=>u.username===username)){ alert('Username exists'); return false; }
+    users.push({id:users.length+1,username,password,isAdmin:false,score:0});
+    alert('Registration successful!'); showPage('login'); return true;
+}
+function logout(){ currentUser=null; updateNavigation(); showPage('home'); }
+
+// Terminal functionality
+const terminal = document.getElementById('terminal');
+const inputBox = document.getElementById('terminal-input');
+const cursor = document.getElementById('cursor');
+setInterval(()=>{ cursor.style.visibility=cursor.style.visibility==='visible'?'hidden':'visible'; },500);
+
+function terminalResponse(input){
+    input=input.toLowerCase().trim();
+    if(input==='help') return 'Try asking: "who created", "who are you",  "info" , "whoami","pwd"';
+    if(input.includes('who created')) return 'This CTF platform was created by Kamesh, your cybersecurity guide.';
+    if(input.includes('who are you')) return 'I am VHP Hacker Terminal 🤖, here to assist you!';
+    if(input.includes('whoami')) return 'I am HACKER';
+    if(input.includes('pwd')) return 'Go And Register';
+    if(input.includes('info')) return 'VHP CTF is a platform to practice your hacking skills in web, crypto, binary, and forensics challenges.';
+    return 'Unknown command. Type "help" for guidance.';
+}
+
+function addTerminalLine(text){ const line=document.createElement('div'); line.textContent=text; terminal.appendChild(line); terminal.scrollTop=terminal.scrollHeight; }
+
+inputBox.addEventListener('keydown',function(e){
+    if(e.key==='Enter'){ 
+        const input=inputBox.value; addTerminalLine('> '+input);
+        addTerminalLine(terminalResponse(input)); inputBox.value=''; 
+    }
+});
+
+// Initialize
+updateNavigation();
+</script>
+
+</body>
+</html>
