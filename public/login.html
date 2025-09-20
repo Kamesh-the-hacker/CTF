@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VHP CTF Login</title>
+<style>
+body {
+    background:#0a0a0a;
+    font-family:'Source Code Pro', monospace;
+    color:#00ff00;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    min-height:100vh;
+}
+body::before {
+    content:'';
+    position:fixed;
+    top:0;
+    left:0;
+    width:100%;
+    height:100%;
+    background: radial-gradient(circle at 20% 50%, rgba(0,255,255,0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(0,255,0,0.1) 0%, transparent 50%),
+                radial-gradient(circle at 40% 80%, rgba(0,128,255,0.1) 0%, transparent 50%);
+    animation: backgroundPulse 8s ease-in-out infinite alternate;
+    z-index:-1;
+}
+@keyframes backgroundPulse {0%{opacity:0.3;}100%{opacity:0.7;}}
+.form-container {
+    background:rgba(0,0,0,0.8);
+    border:1px solid #00ff00;
+    border-radius:10px;
+    padding:2rem;
+    width:350px;
+    box-shadow:0 0 20px rgba(0,255,0,0.5);
+}
+h2 {
+    text-align:center;
+    color:#00ffff;
+    margin-bottom:2rem;
+    font-family:'Orbitron', monospace;
+    text-shadow:0 0 10px #00ffff;
+}
+label {
+    display:block;
+    margin-bottom:0.5rem;
+    color:#00ff00;
+}
+input[type="text"], input[type="password"] {
+    width:100%;
+    padding:0.8rem;
+    border-radius:5px;
+    border:1px solid #00ff00;
+    background:#001100;
+    color:#00ff00;
+}
+.btn {
+    width:100%;
+    padding:0.8rem;
+    background: linear-gradient(45deg, #001100, #003300);
+    color:#00ff00;
+    border:2px solid #00ff00;
+    border-radius:8px;
+    cursor:pointer;
+}
+.message {
+    text-align:center;
+    padding:0.8rem;
+    margin-bottom:1rem;
+    border-radius:5px;
+}
+.message.error {
+    background: rgba(255,0,64,0.1);
+    border:1px solid #ff0040;
+    color:#ff0040;
+}
+.message.success {
+    background: rgba(0,255,0,0.1);
+    border:1px solid #00ff00;
+    color:#00ff00;
+}
+</style>
+</head>
+<body>
+<div class="form-container">
+    <h2>Login to VHP CTF</h2>
+    <div id="message"></div>
+    <form id="login-form">
+        <label>Username:</label>
+        <input type="text" id="username" required>
+        <label>Password:</label>
+        <input type="password" id="password" required>
+        <button type="submit" class="btn">Login</button>
+    </form>
+    <p style="text-align:center; margin-top:1rem;">
+        Don't have an account? <a href="register.html" style="color:#00ffff;">Register here</a>
+    </p>
+</div>
+
+<script>
+const form = document.getElementById('login-form');
+const messageDiv = document.getElementById('message');
+
+form.addEventListener('submit', async e => {
+    e.preventDefault();
+    const username = document.getElementById('username').value.trim();
+    const password = document.getElementById('password').value;
+
+    try {
+        const res = await fetch('/api/login', {
+            method: 'POST',
+            credentials: 'include',  // important for session
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ username, password })
+        });
+        const data = await res.json();
+        if(data.success){
+            messageDiv.innerHTML = '<div class="message success">Login successful! Redirecting...</div>';
+            setTimeout(()=>{ window.location.href='dashboard.html'; }, 1500); // replace with your user dashboard
+        } else {
+            messageDiv.innerHTML = `<div class="message error">${data.message}</div>`;
+        }
+    } catch(err){
+        console.error(err);
+        messageDiv.innerHTML = '<div class="message error">Server error. Try again later.</div>';
+    }
+});
+</script>
+</body>
+</html>
