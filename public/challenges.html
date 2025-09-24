@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VHP CTF Challenges</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Source+Code+Pro:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  body {
+    background: #0a0a0a;
+    font-family: 'Source Code Pro', monospace;
+    color: #00ff00;
+    margin: 0;
+    padding: 2rem;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    top:0; left:0;
+    width:100%; height:100%;
+    background:
+      radial-gradient(circle at 20% 50%, rgba(0, 255, 255, 0.1) 0%, transparent 50%),
+      radial-gradient(circle at 80% 20%, rgba(0, 255, 0, 0.1) 0%, transparent 50%),
+      radial-gradient(circle at 40% 80%, rgba(0, 128, 255, 0.1) 0%, transparent 50%);
+    animation: backgroundPulse 8s ease-in-out infinite alternate;
+    z-index:-1;
+  }
+
+  @keyframes backgroundPulse { 0% { opacity:0.3; } 100% { opacity:0.7; } }
+
+  h2 { text-align:center; color: #00ffff; font-family:'Orbitron', monospace; text-shadow:0 0 10px #00ffff; margin-bottom:2rem; }
+  .challenge-card { background: rgba(0,0,0,0.85); border: 1px solid #00ff00; border-radius: 10px; padding: 1.5rem; margin: 1rem auto; max-width: 700px; box-shadow: 0 0 20px rgba(0,255,0,0.3); }
+  .challenge-title { font-size: 1.5rem; color: #00ffff; margin-bottom: 0.5rem; }
+  .challenge-meta { font-size: 0.9rem; color: #88ff88; margin-bottom: 1rem; }
+  .challenge-desc { margin-bottom: 1rem; color: #00ff00; }
+  input[type="text"] { width: 70%; padding: 0.6rem; border-radius: 6px; border: 1px solid #00ff00; background: #001100; color: #00ff00; margin-right: 0.5rem; }
+  .btn { padding: 0.6rem 1.2rem; border:2px solid #00ff00; border-radius:6px; background: linear-gradient(45deg, #001100, #003300); color:#00ff00; cursor:pointer; }
+  .btn:hover { background: linear-gradient(45deg, #002200, #004400); color:#00ffff; }
+  .message { margin-top:0.5rem; font-size: 0.9rem; }
+  .message.success { color: #00ffcc; }
+  .message.error { color: #ff0040; }
+  .navbar { text-align: center; margin-bottom: 2rem; }
+  .navbar a { margin: 0 1rem; color: #00ffff; text-decoration: none; }
+  .navbar a:hover { text-shadow: 0 0 8px #00ffff; }
+  .download-link { display: inline-block; margin-top: 0.5rem; padding: 0.4rem 0.8rem; border: 1px solid #00ff00; border-radius: 5px; color: #00ff00; text-decoration: none; }
+  .download-link:hover { color: #00ffff; box-shadow: 0 0 10px #00ff00; }
+
+  /* Neon modal */
+  #successModal { display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background:rgba(0,0,0,0.9); border:2px solid #00ff00; padding:2rem 3rem; border-radius:15px; box-shadow: 0 0 30px #00ff00, 0 0 60px #00ff00, 0 0 90px #00ff00; color:#00ff00; font-family: 'Orbitron', monospace; text-align:center; z-index:1000; transition: opacity 0.5s ease; opacity: 0; }
+  @keyframes neonGlow { 0%, 100% { text-shadow: 0 0 5px #00ff00, 0 0 10px #00ff00, 0 0 20px #00ff00; } 50% { text-shadow: 0 0 10px #00ff00, 0 0 20px #00ff00, 0 0 40px #00ff00; } }
+  .neon-text { animation: neonGlow 1.5s infinite alternate; }
+
+  /* Toggle button */
+  #toggleSolvedBtn { display: block; margin: 1rem auto; padding: 0.6rem 1.2rem; border:2px solid #00ff00; border-radius:6px; background: #001100; color:#00ff00; cursor:pointer; }
+  #toggleSolvedBtn:hover { color:#00ffff; background:#002200; }
+</style>
+</head>
+<body>
+
+<div class="navbar">
+  <a href="dashboard.html">Dashboard</a>
+  <a href="leaderboard.html">Leaderboard</a>
+  <a href="login.html">Login</a>
+</div>
+
+<h2>Unsolved Challenges</h2>
+<div id="unsolvedChallenges">Loading challenges...</div>
+
+<button id="toggleSolvedBtn">Show Solved Challenges</button>
+
+<div id="solvedChallenges" style="display:none;">Loading solved challenges...</div>
+
+<!-- Success Modal -->
+<div id="successModal">
+  <h2 class="neon-text">🎉 Congratulations!</h2>
+  <p class="neon-text">You solved the challenge!</p>
+</div>
+
+<script>
+const unsolvedContainer = document.getElementById('unsolvedChallenges');
+const solvedContainer = document.getElementById('solvedChallenges');
+const toggleBtn = document.getElementById('toggleSolvedBtn');
+const successModal = document.getElementById('successModal');
+
+toggleBtn.addEventListener('click', () => {
+  if(solvedContainer.style.display === 'none'){
+    solvedContainer.style.display = 'block';
+    toggleBtn.textContent = 'Hide Solved Challenges';
+  } else {
+    solvedContainer.style.display = 'none';
+    toggleBtn.textContent = 'Show Solved Challenges';
+  }
+});
+
+async function fetchChallenges() {
+  try {
+    const res = await fetch('/api/challenges');
+    const data = await res.json();
+
+    // Safety check
+    if (!Array.isArray(data)) {
+      unsolvedContainer.innerHTML = `<p class="message error">Failed to load challenges: ${data.message || 'Unknown error'}</p>`;
+      solvedContainer.innerHTML = `<p class="message error">Failed to load challenges: ${data.message || 'Unknown error'}</p>`;
+      return;
+    }
+
+    unsolvedContainer.innerHTML = "";
+    solvedContainer.innerHTML = "";
+
+    data.forEach(ch => {
+      const card = document.createElement('div');
+      card.className = "challenge-card";
+
+      let fileLink = '';
+      if(ch.file) fileLink = `<a class="download-link" href="/uploads/${ch.file}" target="_blank">Download File</a>`;
+      let challengeLink = '';
+      if(ch.link) challengeLink = `<a class="download-link" href="${ch.link}" target="_blank">Challenge Link</a>`;
+
+      card.innerHTML = `
+        <div class="challenge-title">${ch.title} (${ch.points} pts)</div>
+        <div class="challenge-meta">Category: ${ch.category}</div>
+        <div class="challenge-desc">${ch.description}</div>
+        ${fileLink} ${challengeLink}
+        <br><br>
+        <input type="text" id="flag-${ch.id}" placeholder="Enter flag">
+        <button class="btn" onclick="submitFlag(${ch.id})">Submit</button>
+        <div class="message" id="msg-${ch.id}"></div>
+      `;
+
+      if(ch.solved){
+        // Disable input & button
+        const flagInput = card.querySelector(`#flag-${ch.id}`);
+        const submitButton = flagInput.nextElementSibling;
+        flagInput.disabled = true;
+        submitButton.disabled = true;
+
+        const msgDiv = card.querySelector(`#msg-${ch.id}`);
+        msgDiv.textContent = "Already solved ✅";
+        msgDiv.className = "message success";
+
+        solvedContainer.appendChild(card);
+      } else {
+        unsolvedContainer.appendChild(card);
+      }
+    });
+
+  } catch(err) {
+    unsolvedContainer.innerHTML = `<p class="message error">Failed to load challenges: ${err}</p>`;
+    solvedContainer.innerHTML = `<p class="message error">Failed to load challenges: ${err}</p>`;
+  }
+}
+
+async function submitFlag(challengeId) {
+  const flagInput = document.getElementById(`flag-${challengeId}`);
+  const messageDiv = document.getElementById(`msg-${challengeId}`);
+  const flag = flagInput.value.trim();
+  if(!flag) return;
+
+  try {
+    const res = await fetch('/api/submit', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({challengeId, flag})
+    });
+    const data = await res.json();
+
+    if(data.success){
+      messageDiv.textContent = data.message || "Correct flag! 🎉";
+      messageDiv.className = "message success";
+
+      flagInput.disabled = true;
+      const submitButton = flagInput.nextElementSibling;
+      if(submitButton) submitButton.disabled = true;
+
+      const card = flagInput.closest('.challenge-card');
+      solvedContainer.appendChild(card);
+
+      successModal.style.display = 'block';
+      successModal.style.opacity = 1;
+      setTimeout(() => {
+        successModal.style.opacity = 0;
+        setTimeout(()=> successModal.style.display='none', 500);
+      }, 3000);
+
+    } else {
+      messageDiv.textContent = data.message || "Wrong flag.";
+      messageDiv.className = "message error";
+    }
+
+  } catch(err){
+    messageDiv.textContent = "Error submitting flag.";
+    messageDiv.className = "message error";
+  }
+}
+
+// Fetch challenges on page load
+fetchChallenges();
+</script>
+
+</body>
+</html>
