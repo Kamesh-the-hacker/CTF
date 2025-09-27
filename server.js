@@ -68,6 +68,8 @@ db.serialize(() => {
   }
 });
 
+
+
 // ================== ADMIN AUTH ==================
 function adminAuth(req, res, next) {
   if (req.session.isAdmin) next();
