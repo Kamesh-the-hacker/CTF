@@ -80,6 +80,21 @@ input, select, textarea { width:100%; margin-bottom:1rem; padding:0.5rem; backgr
     </form>
     <div id="password-message"></div>
 </div>
+<button id="clearLeaderboardBtn" class="btn">Clear Leaderboard</button>
+
+<script>
+document.getElementById("clearLeaderboardBtn").addEventListener("click", async () => {
+    if(confirm("Are you sure you want to clear the leaderboard? This cannot be undone!")){
+        const res = await fetch("http://localhost:3000/api/admin/clear-leaderboard", {
+            method: "POST",
+            credentials: "include"
+        });
+        const data = await res.json();
+        alert(data.message);
+    }
+});
+</script>
+
 
 <script>
 // --- Check Admin Session ---
