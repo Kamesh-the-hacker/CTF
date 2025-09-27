@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VHP CTF Admin Panel</title>
+<style>
+body { background:#000; color:#0f0; font-family: monospace; padding:2rem;}
+h1 { text-align:center; color:#0ff; }
+.navbar { text-align:center; margin-bottom:2rem; }
+.navbar button { background:#020; border:1px solid #0f0; color:#0f0; padding:0.5rem 1rem; margin:0 0.5rem; cursor:pointer;}
+.form-container { display:none; border:1px solid #0f0; padding:1rem; margin-bottom:2rem;}
+input, select, textarea { width:100%; margin-bottom:1rem; padding:0.5rem; background:#001100; color:#0f0; border:1px solid #0f0;}
+.btn { padding:0.5rem 1rem; border:1px solid #0f0; background:#020; color:#0f0; cursor:pointer;}
+.user-item, .challenge-item { border:1px solid #0f0; padding:0.5rem; margin-bottom:0.5rem;}
+.message { margin-top:1rem; }
+.message.success { color:#0ff; }
+.message.error { color:red; }
+.edit-section input, .edit-section textarea { margin-bottom:0.5rem; }
+#search-challenges { margin-bottom:1rem; padding:0.5rem; background:#001100; color:#0f0; border:1px solid #0f0; width:100%; }
+.logout { position:absolute; top:15px; right:15px; background:#200; color:#f00; border:1px solid #f00; padding:0.4rem 1rem; cursor:pointer; }
+</style>
+</head>
+<body>
+
+<h1>VHP CTF Admin Panel</h1>
+<button class="logout" id="logoutBtn">Logout</button>
+
+<div class="navbar">
+    <button data-section="add">Add Challenge</button>
+    <button data-section="manage">Manage Challenges</button>
+    <button data-section="users">Manage Users</button>
+    <button data-section="password">Change Password</button>
+</div>
+
+<!-- Add Challenge -->
+<div class="form-container" id="add">
+    <h2>Add Challenge</h2>
+    <form id="add-form">
+        <input type="text" name="title" placeholder="Title" required>
+        <select name="category" required>
+            <option value="">Category</option>
+            <option value="web">Web</option>
+            <option value="crypto">Crypto</option>
+            <option value="binary">Binary</option>
+            <option value="forensics">Forensics</option>
+            <option value="misc">Misc</option>
+        </select>
+        <textarea name="description" placeholder="Description" required></textarea>
+        <input type="text" name="flag" placeholder="flag{example}" required>
+        <input type="number" name="points" placeholder="Points" required>
+        <input type="file" name="file">
+        <input type="text" name="link" placeholder="Challenge Link">
+        <button type="submit" class="btn">Add</button>
+    </form>
+    <div id="add-msg"></div>
+</div>
+
+<!-- Manage Challenges -->
+<div class="form-container" id="manage">
+    <h2>Manage Challenges</h2>
+    <input type="text" id="search-challenges" placeholder="Search by title...">
+    <div id="challenge-list"></div>
+</div>
+
+<!-- Manage Users -->
+<div class="form-container" id="users">
+    <h2>Manage Users</h2>
+    <div id="user-list"></div>
+</div>
+
+<!-- Change Admin Password -->
+<div class="form-container" id="password">
+    <h2>Change Admin Password</h2>
+    <form id="change-password-form">
+        <input type="password" id="old-password" placeholder="Old Password" required>
+        <input type="password" id="new-password" placeholder="New Password" required>
+        <input type="password" id="confirm-password" placeholder="Confirm New Password" required>
+        <button type="submit" class="btn">Change</button>
+    </form>
+    <div id="password-message"></div>
+</div>
+<button id="clearLeaderboardBtn" class="btn">Clear Leaderboard</button>
+
+<script>
+document.getElementById("clearLeaderboardBtn").addEventListener("click", async () => {
+    if(confirm("Are you sure you want to clear the leaderboard? This cannot be undone!")){
+        const res = await fetch("http://localhost:3000/api/admin/clear-leaderboard", {
+            method: "POST",
+            credentials: "include"
+        });
+        const data = await res.json();
+        alert(data.message);
+    }
+});
+</script>
+
+
+<script>
+// --- Check Admin Session ---
+async function checkAdminSession() {
+    const res = await fetch('/api/admin/check-session', { credentials: 'include' });
+    const data = await res.json();
+    if(!data.success) window.location.href='admin_login.html';
+}
+checkAdminSession();
+
+// --- Section switching ---
+function showSection(id){
+    document.querySelectorAll('.form-container').forEach(div => div.style.display='none');
+    document.getElementById(id).style.display='block';
+}
+document.querySelectorAll('.navbar button').forEach(btn => {
+    btn.addEventListener('click', () => showSection(btn.dataset.section));
+});
+
+// --- Logout ---
+document.getElementById('logoutBtn').addEventListener('click', async () => {
+    await fetch('/api/admin/logout',{method:'POST', credentials: 'include'});
+    window.location.href='admin_login.html';
+});
+
+// --- Add Challenge ---
+const addForm = document.getElementById('add-form');
+const addMsg = document.getElementById('add-msg');
+addForm.addEventListener('submit', async e => {
+    e.preventDefault();
+    const formData = new FormData(addForm);
+    const res = await fetch('/api/challenges',{method:'POST',body:formData, credentials: 'include'});
+    const data = await res.json();
+    if(data.success){ addMsg.innerHTML='<div class="message success">Challenge added!</div>'; addForm.reset(); renderChallenges(); }
+    else addMsg.innerHTML=`<div class="message error">${data.message}</div>`;
+});
+
+// --- Manage Challenges ---
+let expandedChallenge = null;
+let challengesData = [];
+async function renderChallenges(){
+    showSection('manage');
+    const container = document.getElementById('challenge-list');
+    container.innerHTML='<p>Loading...</p>';
+    const res = await fetch('/api/challenges', { credentials: 'include' });
+    const data = await res.json();
+    challengesData = data;
+    displayChallenges(data);
+}
+function displayChallenges(data){
+    const container = document.getElementById('challenge-list');
+    container.innerHTML='';
+    if(!data.length){ container.innerHTML='<p>No challenges yet.</p>'; return; }
+    data.forEach(ch=>{
+        const div=document.createElement('div');
+        div.className='challenge-item';
+        div.innerHTML=`
+            <strong class="title" style="cursor:pointer;">${ch.title}</strong>
+            <div class="edit-section" style="display:none; margin-top:0.5rem;">
+                <input type="text" value="${ch.title}" id="title-${ch.id}" placeholder="Title">
+                <input type="text" value="${ch.category}" id="category-${ch.id}" placeholder="Category">
+                <textarea id="desc-${ch.id}" placeholder="Description">${ch.description}</textarea>
+                <input type="text" value="${ch.flag}" id="flag-${ch.id}" placeholder="Flag">
+                <input type="number" value="${ch.points}" id="points-${ch.id}" placeholder="Points">
+                <input type="text" value="${ch.link || ''}" id="link-${ch.id}" placeholder="Challenge Link">
+                <button class="btn save-btn" data-id="${ch.id}">Save</button>
+                <button class="btn del-btn" data-id="${ch.id}">Delete</button>
+            </div>`;
+        container.appendChild(div);
+        div.querySelector('.title').addEventListener('click',()=> {
+            const editSection = div.querySelector('.edit-section');
+            if(expandedChallenge && expandedChallenge!==editSection) expandedChallenge.style.display='none';
+            editSection.style.display = editSection.style.display==='none'?'block':'none';
+            expandedChallenge = editSection.style.display==='block'?editSection:null;
+        });
+        div.querySelector('.save-btn').addEventListener('click',()=>saveChallenge(ch.id));
+        div.querySelector('.del-btn').addEventListener('click',()=>deleteChallenge(ch.id));
+    });
+}
+document.getElementById('search-challenges').addEventListener('input',(e)=>{
+    const query = e.target.value.toLowerCase();
+    const filtered = challengesData.filter(ch=>ch.title.toLowerCase().includes(query));
+    displayChallenges(filtered);
+});
+async function saveChallenge(id){
+    const body={
+        title:document.getElementById(`title-${id}`).value,
+        category:document.getElementById(`category-${id}`).value,
+        description:document.getElementById(`desc-${id}`).value,
+        flag:document.getElementById(`flag-${id}`).value,
+        points:document.getElementById(`points-${id}`).value,
+        link:document.getElementById(`link-${id}`).value
+    };
+    await fetch(`/api/challenges/${id}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(body), credentials: 'include'});
+    renderChallenges();
+}
+async function deleteChallenge(id){
+    if(!confirm("Are you sure you want to delete this challenge?")) return;
+    await fetch(`/api/challenges/${id}`,{method:'DELETE', credentials: 'include'});
+    renderChallenges();
+}
+
+// --- Manage Users ---
+async function renderUsers(){
+    showSection('users');
+    const container = document.getElementById('user-list');
+    container.innerHTML='<p>Loading...</p>';
+    try {
+        const res = await fetch('/api/users', { credentials: 'include' });
+        const data = await res.json();
+        if(!res.ok || !Array.isArray(data)){
+            container.innerHTML = `<p class="message error">${data.message || "Error loading users."}</p>`;
+            return;
+        }
+        container.innerHTML='';
+        if(!data.length){ container.innerHTML='<p>No users yet.</p>'; return; }
+        data.forEach(u=>{
+            const div = document.createElement('div');
+            div.className = 'user-item';
+            div.innerHTML = `${u.username} (score: ${u.score}) <button class="btn del-user" data-id="${u.id}">Delete</button>`;
+            container.appendChild(div);
+        });
+        container.querySelectorAll('.del-user').forEach(b=>{
+            b.addEventListener('click', ()=>deleteUser(b.dataset.id));
+        });
+    } catch(err){
+        container.innerHTML = '<p class="message error">Error loading users.</p>';
+        console.error(err);
+    }
+}
+async function deleteUser(id){
+    if(!confirm("Are you sure you want to delete this user?")) return;
+    const res = await fetch(`/api/users/${id}`, { method: 'DELETE', credentials: 'include' });
+    const data = await res.json();
+    if(data.success) renderUsers();
+    else alert(data.message || "Failed to delete user");
+}
+
+// --- Admin Password ---
+const passwordForm = document.getElementById('change-password-form');
+const passwordMsg = document.getElementById('password-message');
+passwordForm.addEventListener('submit',async e=>{
+    e.preventDefault();
+    const oldPass=document.getElementById('old-password').value;
+    const newPass=document.getElementById('new-password').value;
+    const confirmPass=document.getElementById('confirm-password').value;
+    if(newPass!==confirmPass){ passwordMsg.innerHTML='<div class="message error">Passwords do not match</div>'; return; }
+    const res = await fetch('/api/admin/change-password',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        credentials: 'include',
+        body:JSON.stringify({oldPassword:oldPass,newPassword:newPass})
+    });
+    const data = await res.json();
+    if(data.success){ passwordMsg.innerHTML='<div class="message success">Password changed!</div>'; passwordForm.reset(); }
+    else passwordMsg.innerHTML=`<div class="message error">${data.message||'Failed'}</div>`;
+});
+
+// --- Default view ---
+showSection('add');
+renderUsers();
+renderChallenges();
+</script>
+
+</body>
+</html>
