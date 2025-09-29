@@ -82,7 +82,7 @@ VHP CTF Platform
 
 A web-based Capture The Flag (CTF) platform to practice cybersecurity challenges and track your progress. The platform is live and accessible online.
 
-🌐 Live Demo: https://vhpctf.onrender.com
+🌐 Live:https://vhpctf.onrender.com/
 
 Features
 
